@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=0.5' />
+    <head>
+        <style>
+                body {
+                    margin: 0;
+                    height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    background-color: #95b195;
+                  }
+                #dropFileForm {
+                    margin: auto 100px;
+                    text-align: center;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    transition: 0.5s;
+                  }
+                  
+                  #dropFileForm #fileLabel {
+                    background-color: rgba(0, 255, 0, 0.5);
+                    display: block;
+                    padding: 24px;
+                    position: relative;
+                    cursor: pointer;
+                  }
+                  
+                  #dropFileForm #fileInput {
+                    display: none;
+                  }
+                  
+                  #dropFileForm #fileLabel:after,
+                  #dropFileForm #fileLabel:before {
+                    position: absolute;
+                    content: "";
+                    top: 0;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background-color: #fff;
+                    z-index: -2;
+                    border-radius: 8px 8px 0 0;
+                  }
+                  
+                  #dropFileForm #fileLabel:before {
+                    z-index: -1;
+                    background: repeating-linear-gradient(
+                      45deg,
+                      transparent,
+                      transparent 5%,
+                      black 5%,
+                      black 10%
+                    );
+                    opacity: 0;
+                    transition: 0.5s;
+                  }
+                  
+                  #dropFileForm.fileHover #fileLabel:before {
+                    opacity: 0.25;
+                  }
+                  
+                  #dropFileForm .uploadButton {
+                    border: 0;
+                    outline: 0;
+                    width: 100%;
+                    padding: 8px;
+                    font-size: 50px;
+                    background-color: limeGreen;
+                    color: #fff;
+                    cursor: pointer;
+                  }
+                  
+                  #dropFileForm.fileHover {
+                    box-shadow: 0 0 16px limeGreen;
+                  }
+                  
+                  #fileLabelText{
+                    color: #000;
+                    font-size: 40px;
+                    font-family: Arial, Helvetica, sans-serif;
+                  }
+
+                  #uploadStatus{
+                    color: rgb(112, 0, 0);
+                    font-size: 30px;
+                    font-family: Arial, Helvetica, sans-serif;
+                  }
+        </style>
+    </head>
+    <body>
+            <form id="dropFileForm" action="/update" method="post" onsubmit="uploadFiles(event)">
+                <input type="file" name="files[]" id="fileInput" onchange="addFiles(event)" accept=".bin">
+              
+                <label for="fileInput" id="fileLabel" ondragover="overrideDefault(event);fileHover();" ondragenter="overrideDefault(event);fileHover();" ondragleave="overrideDefault(event);fileHoverEnd();" ondrop="overrideDefault(event);fileHoverEnd();
+                      addFiles(event);">
+                      <svg width="350" height="350" viewBox="0 0 2048 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1344 864q0-14-9-23l-352-352q-9-9-23-9t-23 9l-351 351q-10 12-10 24 0 14 9 23t23 9h224v352q0 13 9.5 22.5t22.5 9.5h192q13 0 22.5-9.5t9.5-22.5v-352h224q13 0 22.5-9.5t9.5-22.5zm640 288q0 159-112.5 271.5t-271.5 112.5h-1088q-185 0-316.5-131.5t-131.5-316.5q0-130 70-240t188-165q-2-30-2-43 0-212 150-362t362-150q156 0 285.5 87t188.5 231q71-62 166-62 106 0 181 75t75 181q0 76-41 138 130 31 213.5 135.5t83.5 238.5z"/></svg>
+                  <br>
+                  <span id="fileLabelText">
+                    Choose firmware.bin or drag it here
+                  </span>
+                  <br>
+                  <span id="uploadStatus"></span>
+                </label>
+              
+                <input type="submit" value="Update Firmware" class="uploadButton">
+            </form>
+            <script>
+                    var dropFileForm = document.getElementById("dropFileForm");
+                    var fileLabelText = document.getElementById("fileLabelText");
+                    var uploadStatus = document.getElementById("uploadStatus");
+                    var fileInput = document.getElementById("fileInput");
+                    var droppedFiles;
+                    
+                    function overrideDefault(event) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }
+                    
+                    function fileHover() {
+                      dropFileForm.classList.add("fileHover");
+                    }
+                    
+                    function fileHoverEnd() {
+                      dropFileForm.classList.remove("fileHover");
+                    }
+                    
+                    function addFiles(event) {
+                      droppedFiles = event.target.files || event.dataTransfer.files;
+                      showFiles(droppedFiles);
+                    }
+                    
+                    function showFiles(files) {
+                      if(files[0].name.split('.').pop() != "bin") {
+                        fileLabelText.innerText = "STOP: Only choose .bin file !!!";
+                        alert("STOP: Only choose .bin file !!!");
+                        fileInput.value = "";
+                        dropFileForm.reset();
+                      } else {
+                        fileLabelText.innerText = files[0].name;
+                      }
+                    }
+                    
+                    function uploadFiles(event) {
+                      event.preventDefault();
+                      if (fileInput.files.length == 0) {
+                        fileLabelText.innerText = "Select at least 1 file!";
+                      } else {
+                        changeStatus("Uploading...");
+                      
+                        var formData = new FormData();
+                        formData.append(fileInput.name, droppedFiles[0], droppedFiles[0].name);
+      
+                        fetch(dropFileForm.action, {
+                          method: dropFileForm.method,
+                          body: formData
+                        }).then(function(e) {
+                          if(e.ok){
+                            return e.text();
+                          }
+                          throw new Error('Network response was not ok.');
+                        }).then(function(e) {
+                          changeStatus(e+", reload in 30s!");
+                          console.log(e);
+                          setTimeout(function(){location.reload();}, 30000);
+                        }).catch(function(e) {
+                          changeStatus("Error: " + e.message);
+                          console.log('Error: ', e.message);
+                          setTimeout(function(){
+                            location.reload(); 
+                          }, 5000);
+                        });
+                      }
+                    }
+                    
+                    function changeStatus(text) {
+                      uploadStatus.innerText = text;
+                    }
+            </script>
+    </body>
+</html>
